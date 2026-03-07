@@ -1,7 +1,7 @@
 {
-    "name": "iiuc-api",
+    "name": "skilsync-api",
     "version": "1.0.0",
-    "description": "IIUC Job Portal API - NestJS + TypeORM + PostgreSQL",
+    "description": "SkillSync API - AI-Powered Job Portal Backend",
     "scripts": {
         "build": "nest build",
         "start": "node dist/main",

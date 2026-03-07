@@ -1,6 +1,7 @@
 {
-  "name": "iiuc-web",
+  "name": "skilsync-web",
   "version": "0.1.0",
+  "description": "SkillSync Frontend - AI-Powered Job Portal",
   "private": true,
   "scripts": {
     "dev": "next dev --turbopack --hostname 0.0.0.0",

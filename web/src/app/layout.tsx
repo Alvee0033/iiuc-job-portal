@@ -21,8 +21,8 @@ const orbitron = Orbitron({
 });
 
 export const metadata: Metadata = {
-  title: "Jobsite - AI-Powered Job Portal",
-  description: "Find your dream job or hire top talent with AI-powered matching",
+  title: "SkillSync - AI-Powered Job Portal",
+  description: "Accelerate your career with AI-driven job matching and recruitment solutions.",
 };
 
 import { ReactQueryProvider } from "./react-query-provider";

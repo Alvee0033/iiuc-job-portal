@@ -32,9 +32,9 @@ async function bootstrap() {
 
     // Swagger setup
     const config = new DocumentBuilder()
-        .setTitle('IIUC Job Portal API')
+        .setTitle('SkillSync API')
         .setDescription(
-            '🚀 Full-featured AI-powered Job Portal API built with NestJS, TypeORM, and PostgreSQL.\n\n' +
+            '🚀 Full-featured AI-powered Job Portal API.\n\n' +
             '## Features\n' +
             '- 🔐 JWT Authentication\n' +
             '- 👤 Candidate & Recruiter Profiles\n' +
