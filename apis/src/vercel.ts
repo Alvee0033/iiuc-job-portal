@@ -28,9 +28,14 @@ export const createApp = async (expressInstance: any) => {
 
 // Add a direct health check for Vercel debugging
 server.get('/api/vercel-health', (req, res) => {
-    res.status(200).json({ status: 'ok', engine: 'vercel-serverless' });
+    res.status(200).json({ status: 'ok', engine: 'vercel-serverless', timestamp: new Date().toISOString() });
 });
 
-createApp(server);
+let cachedApp: any;
 
-export default server;
+export default async (req: any, res: any) => {
+    if (!cachedApp) {
+        cachedApp = await createApp(server);
+    }
+    return server(req, res);
+};
