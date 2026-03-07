@@ -1,5 +1,5 @@
 import { useAuthStore } from '@/stores/useAuthStore';
-import type { paths } from '@/src/types/api';
+import type { paths } from '@/types/api';
 
 const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3002/api/v1';
 

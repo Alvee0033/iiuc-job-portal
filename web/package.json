@@ -4,7 +4,7 @@
   "private": true,
   "scripts": {
     "dev": "next dev --turbopack --hostname 0.0.0.0",
-    "build": "next build --turbopack",
+    "build": "next build",
     "start": "next start",
     "build:static": "next build && next export",
     "deploy": "npm run build:static && firebase deploy --only hosting"
