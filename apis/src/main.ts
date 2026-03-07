@@ -69,14 +69,14 @@ async function bootstrap() {
 
     const document = SwaggerModule.createDocument(app, config);
     SwaggerModule.setup('api/docs', app, document, {
-        customSiteTitle: 'IIUC Job Portal API Docs',
+        customSiteTitle: 'SkillSync Job Portal API Docs',
         swaggerOptions: {
             persistAuthorization: true,
         },
         customCss: `
       .swagger-ui .topbar { background: linear-gradient(135deg, #1e1b4b, #312e81); }
       .swagger-ui .topbar-wrapper img { display: none; }
-      .swagger-ui .topbar-wrapper::before { content: '🚀 IIUC Job Portal API'; color: white; font-size: 1.2rem; font-weight: 700; }
+      .swagger-ui .topbar-wrapper::before { content: '🚀 SkillSync Job Portal API'; color: white; font-size: 1.2rem; font-weight: 700; }
     `,
     });
 

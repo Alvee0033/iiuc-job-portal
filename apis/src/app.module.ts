@@ -35,7 +35,7 @@ import { redisStore } from 'cache-manager-redis-yet';
                 port: config.get<number>('DB_PORT', 5432),
                 username: config.get('DB_USERNAME', 'postgres'),
                 password: config.get('DB_PASSWORD', undefined),
-                database: config.get('DB_DATABASE', 'iiuc_jobportal'),
+                database: config.get('DB_DATABASE', 'skilsync_jobportal'),
                 entities: [__dirname + '/**/*.entity{.ts,.js}'],
                 migrations: [__dirname + '/database/migrations/*{.ts,.js}'],
                 synchronize: config.get('NODE_ENV') === 'development',

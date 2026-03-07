@@ -40,7 +40,7 @@ export const useAuthStore = create<AuthState>()(
             updateUser: (data) => set((state) => ({ user: state.user ? { ...state.user, ...data } : null })),
         }),
         {
-            name: 'iiuc-auth',
+            name: 'skilsync-auth',
             partialize: (state) => ({ user: state.user, token: state.token, isAuthenticated: state.isAuthenticated }),
         },
     ),
