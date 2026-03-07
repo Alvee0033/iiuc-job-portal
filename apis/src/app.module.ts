@@ -31,13 +31,12 @@ import { redisStore } from 'cache-manager-redis-yet';
             inject: [ConfigService],
             useFactory: (config: ConfigService) => ({
                 type: 'postgres',
-                host: config.get('DB_HOST', '/var/run/postgresql'),
+                host: config.get('DB_HOST', 'localhost'),
                 port: config.get<number>('DB_PORT', 5432),
                 username: config.get('DB_USERNAME', 'postgres'),
-                password: config.get('DB_PASSWORD', undefined),
+                password: config.get('DB_PASSWORD', 'postgres'),
                 database: config.get('DB_DATABASE', 'skilsync_jobportal'),
-                entities: [__dirname + '/**/*.entity{.ts,.js}'],
-                migrations: [__dirname + '/database/migrations/*{.ts,.js}'],
+                autoLoadEntities: true,
                 synchronize: config.get('NODE_ENV') === 'development',
                 logging: config.get('NODE_ENV') === 'development',
                 ssl: config.get('DB_SSL') === 'true' ? { rejectUnauthorized: false } : false,
@@ -61,20 +60,30 @@ import { redisStore } from 'cache-manager-redis-yet';
         AdminModule,
         UploadModule,
         HeadshotsModule,
-        // Global caching with Redis
+        // Global caching with Redis (Optional in Production)
         CacheModule.registerAsync({
             isGlobal: true,
             inject: [ConfigService],
-            useFactory: async (config: ConfigService) => ({
-                store: await redisStore({
-                    socket: {
-                        host: config.get('REDIS_HOST', 'localhost'),
-                        port: config.get<number>('REDIS_PORT', 6379),
-                    },
-                    password: config.get('REDIS_PASSWORD'),
-                    ttl: 600,
-                }),
-            }),
+            useFactory: async (config: ConfigService) => {
+                const host = config.get('REDIS_HOST');
+                const ttl = 600;
+                if (!host) {
+                    return {
+                        ttl,
+                    };
+                }
+                return {
+                    store: await redisStore({
+                        socket: {
+                            host,
+                            port: config.get<number>('REDIS_PORT', 6379),
+                        },
+                        password: config.get('REDIS_PASSWORD'),
+                        ttl,
+                    }),
+                    ttl,
+                };
+            },
         }),
     ],
     providers: [

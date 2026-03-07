@@ -2,7 +2,6 @@
 -- PostgreSQL database dump
 --
 
-\restrict qCldSHuX7jeXtdGd1qBAofqqukntYgIVPC5PcssJC2P75cxfOlHx39h4gPxbHDu
 
 -- Dumped from database version 16.13 (Ubuntu 16.13-0ubuntu0.24.04.1)
 -- Dumped by pg_dump version 16.13 (Ubuntu 16.13-0ubuntu0.24.04.1)
@@ -12,7 +11,7 @@ SET lock_timeout = 0;
 SET idle_in_transaction_session_timeout = 0;
 SET client_encoding = 'UTF8';
 SET standard_conforming_strings = on;
-SELECT pg_catalog.set_config('search_path', '', false);
+SELECT pg_catalog.set_config('search_path', 'public, extensions', false);
 SET check_function_bodies = false;
 SET xmloption = content;
 SET client_min_messages = warning;
@@ -22,14 +21,14 @@ SET row_security = off;
 -- Name: uuid-ossp; Type: EXTENSION; Schema: -; Owner: -
 --
 
-CREATE EXTENSION IF NOT EXISTS "uuid-ossp" WITH SCHEMA public;
+CREATE EXTENSION IF NOT EXISTS "uuid-ossp" SCHEMA extensions ;
 
 
 --
 -- Name: EXTENSION "uuid-ossp"; Type: COMMENT; Schema: -; Owner: 
 --
 
-COMMENT ON EXTENSION "uuid-ossp" IS 'generate universally unique identifiers (UUIDs)';
+
 
 
 --
@@ -46,7 +45,7 @@ CREATE TYPE public.applications_status_enum AS ENUM (
 );
 
 
-ALTER TYPE public.applications_status_enum OWNER TO postgres;
+
 
 --
 -- Name: interviews_status_enum; Type: TYPE; Schema: public; Owner: postgres
@@ -60,7 +59,7 @@ CREATE TYPE public.interviews_status_enum AS ENUM (
 );
 
 
-ALTER TYPE public.interviews_status_enum OWNER TO postgres;
+
 
 --
 -- Name: jobs_experiencelevel_enum; Type: TYPE; Schema: public; Owner: postgres
@@ -75,7 +74,7 @@ CREATE TYPE public.jobs_experiencelevel_enum AS ENUM (
 );
 
 
-ALTER TYPE public.jobs_experiencelevel_enum OWNER TO postgres;
+
 
 --
 -- Name: jobs_jobtype_enum; Type: TYPE; Schema: public; Owner: postgres
@@ -93,7 +92,7 @@ CREATE TYPE public.jobs_jobtype_enum AS ENUM (
 );
 
 
-ALTER TYPE public.jobs_jobtype_enum OWNER TO postgres;
+
 
 --
 -- Name: jobs_status_enum; Type: TYPE; Schema: public; Owner: postgres
@@ -106,7 +105,7 @@ CREATE TYPE public.jobs_status_enum AS ENUM (
 );
 
 
-ALTER TYPE public.jobs_status_enum OWNER TO postgres;
+
 
 --
 -- Name: jobs_workmode_enum; Type: TYPE; Schema: public; Owner: postgres
@@ -119,7 +118,7 @@ CREATE TYPE public.jobs_workmode_enum AS ENUM (
 );
 
 
-ALTER TYPE public.jobs_workmode_enum OWNER TO postgres;
+
 
 --
 -- Name: users_role_enum; Type: TYPE; Schema: public; Owner: postgres
@@ -132,7 +131,7 @@ CREATE TYPE public.users_role_enum AS ENUM (
 );
 
 
-ALTER TYPE public.users_role_enum OWNER TO postgres;
+
 
 SET default_tablespace = '';
 
@@ -143,7 +142,7 @@ SET default_table_access_method = heap;
 --
 
 CREATE TABLE public.ai_interviews (
-    id uuid DEFAULT public.uuid_generate_v4() NOT NULL,
+    id uuid DEFAULT uuid_generate_v4() NOT NULL,
     "userId" uuid NOT NULL,
     "jobTitle" character varying,
     "jobDescription" character varying,
@@ -157,14 +156,14 @@ CREATE TABLE public.ai_interviews (
 );
 
 
-ALTER TABLE public.ai_interviews OWNER TO postgres;
+
 
 --
 -- Name: applications; Type: TABLE; Schema: public; Owner: postgres
 --
 
 CREATE TABLE public.applications (
-    id uuid DEFAULT public.uuid_generate_v4() NOT NULL,
+    id uuid DEFAULT uuid_generate_v4() NOT NULL,
     "candidateId" uuid NOT NULL,
     "jobId" uuid NOT NULL,
     status public.applications_status_enum DEFAULT 'pending'::public.applications_status_enum NOT NULL,
@@ -179,14 +178,14 @@ CREATE TABLE public.applications (
 );
 
 
-ALTER TABLE public.applications OWNER TO postgres;
+
 
 --
 -- Name: candidate_education; Type: TABLE; Schema: public; Owner: postgres
 --
 
 CREATE TABLE public.candidate_education (
-    id uuid DEFAULT public.uuid_generate_v4() NOT NULL,
+    id uuid DEFAULT uuid_generate_v4() NOT NULL,
     "candidateProfileId" character varying NOT NULL,
     degree character varying NOT NULL,
     "fieldOfStudy" character varying NOT NULL,
@@ -197,14 +196,14 @@ CREATE TABLE public.candidate_education (
 );
 
 
-ALTER TABLE public.candidate_education OWNER TO postgres;
+
 
 --
 -- Name: candidate_experience; Type: TABLE; Schema: public; Owner: postgres
 --
 
 CREATE TABLE public.candidate_experience (
-    id uuid DEFAULT public.uuid_generate_v4() NOT NULL,
+    id uuid DEFAULT uuid_generate_v4() NOT NULL,
     "candidateProfileId" character varying NOT NULL,
     "jobTitle" character varying NOT NULL,
     company character varying NOT NULL,
@@ -216,14 +215,14 @@ CREATE TABLE public.candidate_experience (
 );
 
 
-ALTER TABLE public.candidate_experience OWNER TO postgres;
+
 
 --
 -- Name: candidate_profiles; Type: TABLE; Schema: public; Owner: postgres
 --
 
 CREATE TABLE public.candidate_profiles (
-    id uuid DEFAULT public.uuid_generate_v4() NOT NULL,
+    id uuid DEFAULT uuid_generate_v4() NOT NULL,
     "userId" uuid NOT NULL,
     headline character varying,
     bio text,
@@ -244,14 +243,14 @@ CREATE TABLE public.candidate_profiles (
 );
 
 
-ALTER TABLE public.candidate_profiles OWNER TO postgres;
+
 
 --
 -- Name: candidate_skills; Type: TABLE; Schema: public; Owner: postgres
 --
 
 CREATE TABLE public.candidate_skills (
-    id uuid DEFAULT public.uuid_generate_v4() NOT NULL,
+    id uuid DEFAULT uuid_generate_v4() NOT NULL,
     "candidateProfileId" character varying NOT NULL,
     "skillName" character varying NOT NULL,
     "skillLevel" character varying DEFAULT 'intermediate'::character varying NOT NULL,
@@ -260,14 +259,14 @@ CREATE TABLE public.candidate_skills (
 );
 
 
-ALTER TABLE public.candidate_skills OWNER TO postgres;
+
 
 --
 -- Name: community_posts; Type: TABLE; Schema: public; Owner: postgres
 --
 
 CREATE TABLE public.community_posts (
-    id uuid DEFAULT public.uuid_generate_v4() NOT NULL,
+    id uuid DEFAULT uuid_generate_v4() NOT NULL,
     "authorId" uuid NOT NULL,
     title character varying,
     content text NOT NULL,
@@ -280,14 +279,14 @@ CREATE TABLE public.community_posts (
 );
 
 
-ALTER TABLE public.community_posts OWNER TO postgres;
+
 
 --
 -- Name: community_replies; Type: TABLE; Schema: public; Owner: postgres
 --
 
 CREATE TABLE public.community_replies (
-    id uuid DEFAULT public.uuid_generate_v4() NOT NULL,
+    id uuid DEFAULT uuid_generate_v4() NOT NULL,
     "postId" character varying NOT NULL,
     "authorId" uuid NOT NULL,
     content text NOT NULL,
@@ -295,14 +294,14 @@ CREATE TABLE public.community_replies (
 );
 
 
-ALTER TABLE public.community_replies OWNER TO postgres;
+
 
 --
 -- Name: conversations; Type: TABLE; Schema: public; Owner: postgres
 --
 
 CREATE TABLE public.conversations (
-    id uuid DEFAULT public.uuid_generate_v4() NOT NULL,
+    id uuid DEFAULT uuid_generate_v4() NOT NULL,
     "recruiterId" uuid NOT NULL,
     "candidateId" uuid NOT NULL,
     "jobId" character varying,
@@ -311,14 +310,14 @@ CREATE TABLE public.conversations (
 );
 
 
-ALTER TABLE public.conversations OWNER TO postgres;
+
 
 --
 -- Name: interviews; Type: TABLE; Schema: public; Owner: postgres
 --
 
 CREATE TABLE public.interviews (
-    id uuid DEFAULT public.uuid_generate_v4() NOT NULL,
+    id uuid DEFAULT uuid_generate_v4() NOT NULL,
     "recruiterId" uuid NOT NULL,
     "candidateId" uuid NOT NULL,
     "applicationId" uuid,
@@ -334,14 +333,14 @@ CREATE TABLE public.interviews (
 );
 
 
-ALTER TABLE public.interviews OWNER TO postgres;
+
 
 --
 -- Name: jobs; Type: TABLE; Schema: public; Owner: postgres
 --
 
 CREATE TABLE public.jobs (
-    id uuid DEFAULT public.uuid_generate_v4() NOT NULL,
+    id uuid DEFAULT uuid_generate_v4() NOT NULL,
     "recruiterId" uuid NOT NULL,
     title character varying NOT NULL,
     description text NOT NULL,
@@ -369,14 +368,14 @@ CREATE TABLE public.jobs (
 );
 
 
-ALTER TABLE public.jobs OWNER TO postgres;
+
 
 --
 -- Name: messages; Type: TABLE; Schema: public; Owner: postgres
 --
 
 CREATE TABLE public.messages (
-    id uuid DEFAULT public.uuid_generate_v4() NOT NULL,
+    id uuid DEFAULT uuid_generate_v4() NOT NULL,
     "conversationId" character varying NOT NULL,
     "senderId" uuid NOT NULL,
     content text NOT NULL,
@@ -386,14 +385,14 @@ CREATE TABLE public.messages (
 );
 
 
-ALTER TABLE public.messages OWNER TO postgres;
+
 
 --
 -- Name: recruiter_profiles; Type: TABLE; Schema: public; Owner: postgres
 --
 
 CREATE TABLE public.recruiter_profiles (
-    id uuid DEFAULT public.uuid_generate_v4() NOT NULL,
+    id uuid DEFAULT uuid_generate_v4() NOT NULL,
     "userId" uuid NOT NULL,
     "companyName" character varying,
     "companyLogoUrl" character varying,
@@ -409,14 +408,14 @@ CREATE TABLE public.recruiter_profiles (
 );
 
 
-ALTER TABLE public.recruiter_profiles OWNER TO postgres;
+
 
 --
 -- Name: saved_jobs; Type: TABLE; Schema: public; Owner: postgres
 --
 
 CREATE TABLE public.saved_jobs (
-    id uuid DEFAULT public.uuid_generate_v4() NOT NULL,
+    id uuid DEFAULT uuid_generate_v4() NOT NULL,
     "userId" uuid NOT NULL,
     "jobId" character varying NOT NULL,
     "createdAt" timestamp without time zone DEFAULT now() NOT NULL,
@@ -424,14 +423,14 @@ CREATE TABLE public.saved_jobs (
 );
 
 
-ALTER TABLE public.saved_jobs OWNER TO postgres;
+
 
 --
 -- Name: users; Type: TABLE; Schema: public; Owner: postgres
 --
 
 CREATE TABLE public.users (
-    id uuid DEFAULT public.uuid_generate_v4() NOT NULL,
+    id uuid DEFAULT uuid_generate_v4() NOT NULL,
     email character varying NOT NULL,
     password character varying NOT NULL,
     "fullName" character varying NOT NULL,
@@ -445,7 +444,7 @@ CREATE TABLE public.users (
 );
 
 
-ALTER TABLE public.users OWNER TO postgres;
+
 
 --
 -- Name: messages PK_18325f38ae6de43878487eff986; Type: CONSTRAINT; Schema: public; Owner: postgres
@@ -715,5 +714,4 @@ ALTER TABLE ONLY public.applications
 -- PostgreSQL database dump complete
 --
 
-\unrestrict qCldSHuX7jeXtdGd1qBAofqqukntYgIVPC5PcssJC2P75cxfOlHx39h4gPxbHDu
 
