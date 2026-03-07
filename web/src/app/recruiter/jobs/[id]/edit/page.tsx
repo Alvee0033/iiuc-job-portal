@@ -56,29 +56,50 @@ export default function EditJobPage() {
       const response = await jobsAPI.getById(params.id as string)
       const job = response.data.job || response.data
 
+      const reverseMapExperienceLevel = (level: string) => {
+        switch (level) {
+          case "entry": return "Entry Level";
+          case "mid": return "Mid Level";
+          case "senior": return "Senior";
+          case "lead": return "Lead/Manager";
+          default: return "Mid Level";
+        }
+      };
+
+      const reverseMapJobType = (type: string) => {
+        if (!type) return "Full-time";
+        return type.split("-").map(word => word.charAt(0).toUpperCase() + word.slice(1)).join(" ");
+      };
+
+      const reverseMapWorkMode = (mode: string) => {
+        if (mode === "on-site") return "On-site";
+        if (!mode) return "Remote";
+        return mode.charAt(0).toUpperCase() + mode.slice(1);
+      };
+
       setFormData({
-        jobTitle: job.job_title || "",
-        department: job.department || "",
-        jobType: job.job_type || "Full-time",
-        workMode: job.work_mode || "Remote",
-        experienceLevel: job.experience_level || "Mid Level",
+        jobTitle: job.title || "",
+        department: job.category || "",
+        jobType: (reverseMapJobType(job.jobType) as any) || "Full-time",
+        workMode: (reverseMapWorkMode(job.workMode) as any) || "Remote",
+        experienceLevel: (reverseMapExperienceLevel(job.experienceLevel) as any) || "Mid Level",
         country: job.country || "",
-        city: job.city || "",
+        city: job.location || "",
         address: job.address || "",
-        salaryMin: job.salary_min ? String(job.salary_min) : "",
-        salaryMax: job.salary_max ? String(job.salary_max) : "",
-        salaryCurrency: job.salary_currency || "JPY",
-        salaryPeriod: job.salary_period || "per year",
-        jobDescription: job.job_description || "",
+        salaryMin: job.salaryMin ? String(job.salaryMin) : "",
+        salaryMax: job.salaryMax ? String(job.salaryMax) : "",
+        salaryCurrency: job.salaryCurrency || "JPY",
+        salaryPeriod: job.salaryPeriod || "per year",
+        jobDescription: job.description || "",
         responsibilities: job.responsibilities || "",
-        qualifications: job.qualifications || "",
-        niceToHave: job.nice_to_have || "",
+        qualifications: job.requirements || "",
+        niceToHave: job.preferredSkills?.[0] || "",
         benefits: job.benefits || "",
-        requiredSkills: job.job_skills?.map((s: any) => s.skill_name) || [],
-        applicationDeadline: job.application_deadline ? job.application_deadline.split('T')[0] : "",
-        numberOfPositions: job.number_of_positions || 1,
-        isStudentFriendly: job.is_student_friendly || false,
-        minimumExperienceYears: job.minimum_experience_years ? String(job.minimum_experience_years) : "",
+        requiredSkills: job.requiredSkills || [],
+        applicationDeadline: job.applicationDeadline ? job.applicationDeadline.split('T')[0] : "",
+        numberOfPositions: job.numberOfPositions || 1,
+        isStudentFriendly: job.isStudentFriendly || false,
+        minimumExperienceYears: job.minimumExperienceYears ? String(job.minimumExperienceYears) : "",
         status: job.status || "draft",
       })
     } catch (err: any) {
@@ -106,7 +127,7 @@ export default function EditJobPage() {
       return
     }
     if (!formData.qualifications.trim()) {
-      setError("Qualifications are required")
+      setError("Qualifications (Requirements) are required")
       return
     }
     if (formData.requiredSkills.length === 0) {
@@ -125,25 +146,31 @@ export default function EditJobPage() {
     setLoading(true)
 
     try {
+      const mapExperienceLevel = (level: string) => {
+        switch (level) {
+          case "Entry Level": return "entry";
+          case "Mid Level": return "mid";
+          case "Senior": return "senior";
+          case "Lead/Manager": return "lead";
+          default: return "mid";
+        }
+      };
+
       const submitData: any = {
-        jobTitle: formData.jobTitle.trim(),
-        department: formData.department.trim() || null,
-        jobType: formData.jobType,
-        workMode: formData.workMode,
-        experienceLevel: formData.experienceLevel,
+        title: formData.jobTitle.trim(),
+        category: formData.department.trim() || null,
+        jobType: formData.jobType.toLowerCase().replace(" ", "-"),
+        workMode: formData.workMode === "On-site" ? "on-site" : formData.workMode.toLowerCase(),
+        experienceLevel: mapExperienceLevel(formData.experienceLevel),
         country: formData.country.trim(),
-        city: formData.city.trim(),
+        location: formData.city.trim(),
         address: formData.address.trim() || null,
         salaryCurrency: formData.salaryCurrency,
-        salaryPeriod: formData.salaryPeriod || null,
-        jobDescription: formData.jobDescription.trim(),
+        description: formData.jobDescription.trim(),
+        requirements: formData.qualifications.trim(),
         responsibilities: formData.responsibilities.trim(),
-        qualifications: formData.qualifications.trim(),
-        niceToHave: formData.niceToHave.trim() || null,
-        benefits: formData.benefits.trim() || null,
+        preferredSkills: formData.niceToHave.trim() ? [formData.niceToHave.trim()] : [],
         requiredSkills: formData.requiredSkills,
-        numberOfPositions: formData.numberOfPositions,
-        isStudentFriendly: formData.isStudentFriendly,
         status
       }
 

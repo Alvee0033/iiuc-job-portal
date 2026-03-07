@@ -85,26 +85,39 @@ export default function PostJobPage() {
     setLoading(true)
 
     try {
+      const mapExperienceLevel = (level: string) => {
+        switch (level) {
+          case "Entry Level": return "entry";
+          case "Mid Level": return "mid";
+          case "Senior": return "senior";
+          case "Lead/Manager": return "lead";
+          default: return "mid";
+        }
+      };
+
       const submitData: any = {
-        jobTitle: formData.jobTitle.trim(),
-        department: formData.department.trim() || null,
-        jobType: formData.jobType,
-        workMode: formData.workMode,
-        experienceLevel: formData.experienceLevel,
+        title: formData.jobTitle.trim(),
+        category: formData.department.trim() || null,
+        jobType: formData.jobType.toLowerCase().replace(" ", "-"),
+        workMode: formData.workMode.toLowerCase().replace("-", ""), // handles "Remote" -> "remote", "On-site" -> "onsite" (wait, backend is 'on-site')
+        experienceLevel: mapExperienceLevel(formData.experienceLevel),
         country: formData.country.trim(),
-        city: formData.city.trim(),
+        location: formData.city.trim(), // mapping city to location
         address: formData.address.trim() || null,
         salaryCurrency: formData.salaryCurrency,
-        salaryPeriod: formData.salaryPeriod || null,
-        jobDescription: formData.jobDescription.trim(),
+        description: formData.jobDescription.trim(),
+        requirements: formData.qualifications.trim(),
         responsibilities: formData.responsibilities.trim(),
-        qualifications: formData.qualifications.trim(),
-        niceToHave: formData.niceToHave.trim() || null,
-        benefits: formData.benefits.trim() || null,
+        preferredSkills: formData.niceToHave.trim() ? [formData.niceToHave.trim()] : [],
         requiredSkills: formData.requiredSkills,
-        numberOfPositions: formData.numberOfPositions,
-        isStudentFriendly: formData.isStudentFriendly,
         status
+      }
+
+      // Special handling for workMode to match backend 'on-site'
+      if (formData.workMode === "On-site") {
+        submitData.workMode = "on-site";
+      } else {
+        submitData.workMode = formData.workMode.toLowerCase();
       }
 
       // Add optional fields only if they have values

@@ -11,6 +11,8 @@ export enum JobType {
     INTERNSHIP = 'internship',
     REMOTE = 'remote',
     HYBRID = 'hybrid',
+    FREELANCE = 'freelance',
+    CAMPUS_PLACEMENT = 'campus-placement',
 }
 
 export enum JobStatus {
@@ -27,12 +29,19 @@ export enum ExperienceLevel {
     EXECUTIVE = 'executive',
 }
 
+export enum WorkMode {
+    REMOTE = 'remote',
+    ON_SITE = 'on-site',
+    HYBRID = 'hybrid',
+}
+
 @Entity('jobs')
 export class Job {
     @ApiProperty() @PrimaryGeneratedColumn('uuid') id: string;
     @Column() recruiterId: string;
     @ManyToOne(() => User) @JoinColumn({ name: 'recruiterId' }) recruiter: User;
     @ApiProperty() @Column() title: string;
+    @ApiProperty() @Column({ nullable: true }) category: string;
     @ApiProperty() @Column({ type: 'text' }) description: string;
     @ApiProperty() @Column({ nullable: true, type: 'text' }) requirements: string;
     @ApiProperty() @Column({ nullable: true, type: 'text' }) responsibilities: string;
@@ -41,6 +50,7 @@ export class Job {
     @ApiProperty() @Column({ nullable: true }) location: string;
     @ApiProperty() @Column({ nullable: true }) country: string;
     @ApiProperty({ enum: JobType }) @Column({ type: 'enum', enum: JobType, default: JobType.FULL_TIME }) jobType: JobType;
+    @ApiProperty({ enum: WorkMode }) @Column({ type: 'enum', enum: WorkMode, default: WorkMode.ON_SITE }) workMode: WorkMode;
     @ApiProperty({ enum: JobStatus }) @Column({ type: 'enum', enum: JobStatus, default: JobStatus.OPEN }) status: JobStatus;
     @ApiProperty({ enum: ExperienceLevel }) @Column({ type: 'enum', enum: ExperienceLevel, nullable: true }) experienceLevel: ExperienceLevel;
     @ApiProperty() @Column({ nullable: true }) educationLevel: string;
