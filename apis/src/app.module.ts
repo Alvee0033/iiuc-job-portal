@@ -40,7 +40,7 @@ import { redisStore } from 'cache-manager-redis-yet';
                 migrations: [__dirname + '/database/migrations/*{.ts,.js}'],
                 synchronize: config.get('NODE_ENV') === 'development',
                 logging: config.get('NODE_ENV') === 'development',
-                ssl: false,
+                ssl: config.get('DB_SSL') === 'true' ? { rejectUnauthorized: false } : false,
             }),
         }),
 
@@ -64,12 +64,14 @@ import { redisStore } from 'cache-manager-redis-yet';
         // Global caching with Redis
         CacheModule.registerAsync({
             isGlobal: true,
-            useFactory: async () => ({
+            inject: [ConfigService],
+            useFactory: async (config: ConfigService) => ({
                 store: await redisStore({
                     socket: {
-                        host: 'localhost',
-                        port: 6379,
+                        host: config.get('REDIS_HOST', 'localhost'),
+                        port: config.get<number>('REDIS_PORT', 6379),
                     },
+                    password: config.get('REDIS_PASSWORD'),
                     ttl: 600,
                 }),
             }),
