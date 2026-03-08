@@ -1,12 +1,18 @@
 import { NestFactory } from '@nestjs/core';
 import { AppModule } from './app.module';
 import { ExpressAdapter } from '@nestjs/platform-express';
-import { ValidationPipe } from '@nestjs/common';
+import { INestApplication, ValidationPipe } from '@nestjs/common';
 import express from 'express';
+import cors from 'cors';
+import { VercelRequest, VercelResponse } from '@vercel/node';
 
 const server = express();
 
-export const createApp = async (expressInstance: any) => {
+let cachedApp: INestApplication;
+
+export const createApp = async (expressInstance: any): Promise<INestApplication> => {
+    if (cachedApp) return cachedApp;
+
     try {
         const app = await NestFactory.create(
             AppModule,
@@ -16,7 +22,7 @@ export const createApp = async (expressInstance: any) => {
 
         // Configure CORS in NestJS
         app.enableCors({
-            origin: true, // In production, we should ideally list allowed origins
+            origin: true,
             methods: 'GET,HEAD,PUT,PATCH,POST,DELETE,OPTIONS',
             credentials: true,
             allowedHeaders: 'Content-Type, Accept, Authorization',
@@ -31,6 +37,7 @@ export const createApp = async (expressInstance: any) => {
         );
 
         await app.init();
+        cachedApp = app;
         return app;
     } catch (error) {
         console.error('NestJS Initialization Error:', error);
@@ -39,28 +46,34 @@ export const createApp = async (expressInstance: any) => {
 };
 
 // Explicit CORS middleware for the express instance to handle preflight reliably
-server.use((req, res, next) => {
-    res.setHeader('Access-Control-Allow-Origin', req.headers.origin || '*');
-    res.setHeader('Access-Control-Allow-Methods', 'GET,HEAD,PUT,PATCH,POST,DELETE,OPTIONS');
-    res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Accept, Authorization');
-    res.setHeader('Access-Control-Allow-Credentials', 'true');
-
-    if (req.method === 'OPTIONS') {
-        return res.status(204).end();
-    }
-    next();
-});
+server.use(cors({
+    origin: true,
+    credentials: true,
+    methods: 'GET,HEAD,PUT,PATCH,POST,DELETE,OPTIONS',
+    allowedHeaders: 'Content-Type, Accept, Authorization',
+}));
 
 // Health check for Vercel debugging
 server.get('/api/vercel-health', (req, res) => {
-    res.status(200).json({ status: 'ok', branding: 'SkillSync', engine: 'vercel-serverless', timestamp: new Date().toISOString() });
+    res.status(200).json({
+        status: 'ok',
+        branding: 'SkillSync',
+        engine: 'vercel-serverless',
+        timestamp: new Date().toISOString(),
+        database_configured: !!process.env.DB_HOST
+    });
 });
 
-let cachedApp: any;
-
-export default async (req: any, res: any) => {
-    if (!cachedApp) {
-        cachedApp = await createApp(server);
+export default async (req: VercelRequest, res: VercelResponse) => {
+    try {
+        await createApp(server);
+        return server(req, res);
+    } catch (err) {
+        console.error('Handler Error:', err);
+        res.status(500).json({
+            error: 'Internal Server Error during initialization',
+            details: err.message,
+            stack: process.env.NODE_ENV === 'development' ? err.stack : undefined
+        });
     }
-    return server(req, res);
 };
