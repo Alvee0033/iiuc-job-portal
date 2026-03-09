@@ -1,9 +1,19 @@
 "use client";
 
 import { useEffect, useRef } from "react";
-import { useAuthStore } from "@/stores/useAuthStore";
+import { useAuthStore, User } from "@/stores/useAuthStore";
 
-export function AuthSync({ user, token, children }: { user: any | null, token: string | null; children: React.ReactNode }) {
+interface AuthSyncProps {
+    user: User | null;
+    token: string | null;
+    children: React.ReactNode;
+}
+
+/**
+ * Synchronizes server-side authentication state with the client-side Zustand store.
+ * Prevents hydration flashes by initializing the store immediately.
+ */
+export function AuthSync({ user, token, children }: AuthSyncProps) {
     const isHydrated = useRef(false);
 
     // We hydrate immediately upon render before effects to avoid unauthenticated UI flashes

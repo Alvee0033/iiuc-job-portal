@@ -67,6 +67,21 @@ async function request<T>(path: string, options?: RequestInit): Promise<T> {
     }
 
     if (!res.ok) {
+        let body: unknown;
+        try {
+            body = await res.json();
+        } catch {
+            body = await res.text();
+        }
+
+        let message: string;
+        if (typeof body === 'object' && body !== null && 'message' in body) {
+            const m = (body as { message: string | string[] }).message;
+            message = Array.isArray(m) ? m.join(' ') : String(m);
+        } else {
+            message = `Request failed (${res.status})`;
+        }
+
         // Handle 401 Unauthorized globally
         if (res.status === 401) {
             if (typeof window !== 'undefined') {
@@ -81,21 +96,6 @@ async function request<T>(path: string, options?: RequestInit): Promise<T> {
                 document.cookie = 'user=; path=/; max-age=0';
                 window.location.href = '/auth/login';
             }
-        }
-
-        let body: unknown;
-        try {
-            body = await res.json();
-        } catch {
-            body = await res.text();
-        }
-
-        let message: string;
-        if (typeof body === 'object' && body !== null && 'message' in body) {
-            const m = (body as { message: string | string[] }).message;
-            message = Array.isArray(m) ? m.join(' ') : String(m);
-        } else {
-            message = `Request failed (${res.status})`;
         }
 
         throw new ApiError(res.status, message, body);

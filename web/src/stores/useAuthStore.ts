@@ -27,13 +27,16 @@ export const useAuthStore = create<AuthState>()(
             token: null,
             isAuthenticated: false,
             setAuth: (user, token) => {
-                if (typeof window !== 'undefined') localStorage.setItem('token', token);
+                if (typeof window !== 'undefined') {
+                    localStorage.setItem('token', token);
+                }
                 set({ user, token, isAuthenticated: true });
             },
             logout: () => {
                 if (typeof window !== 'undefined') {
                     localStorage.removeItem('token');
                     localStorage.removeItem('user');
+                    localStorage.removeItem('skilsync-auth');
                 }
                 set({ user: null, token: null, isAuthenticated: false });
             },
