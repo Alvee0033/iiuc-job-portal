@@ -39,8 +39,8 @@ export class InterviewsController {
    */
   @Get(':id')
   @ApiOperation({ summary: 'Get interview details' })
-  findOne(@Param('id') id: string): Promise<any> {
-    return this.service.findOne(id);
+  findOne(@Request() req: any, @Param('id') id: string): Promise<any> {
+    return this.service.findOne(id, req.user);
   }
 
   /**
@@ -51,7 +51,7 @@ export class InterviewsController {
    */
   @Patch(':id')
   @ApiOperation({ summary: 'Update interview' })
-  update(@Param('id') id: string, @Body() dto: any): Promise<any> {
-    return this.service.update(id, dto);
+  update(@Request() req: any, @Param('id') id: string, @Body() dto: any): Promise<any> {
+    return this.service.update(id, dto, req.user);
   }
 }

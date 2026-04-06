@@ -7,7 +7,7 @@ import { Textarea } from "@/components/ui/textarea"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Card } from "@/components/ui/card"
-import { jobsAPI, applicationsAPI, savedJobsAPI, externalJobsAPI, cvAPI } from "@/lib/api"
+import { jobsAPI, applicationsAPI, savedJobsAPI, externalJobsAPI, fetchCurrentCandidateProfile } from "@/lib/api"
 import { Switch } from "@/components/ui/switch"
 import { MapPin, Briefcase, Clock, Building2, DollarSign, Calendar, Loader2, CheckCircle2, XCircle, Bookmark, Share2, TrendingUp, Heart, ExternalLink as ExternalLinkIcon, FileText, ArrowRight } from "lucide-react"
 import { useLanguage } from "@/components/language-provider"
@@ -144,7 +144,7 @@ export default function ViewJobPage() {
 
   const fetchCandidateProfile = async () => {
     try {
-      const response = await cvAPI.getProfile()
+      const response = await fetchCurrentCandidateProfile()
       if (response.data) {
         setCandidateProfile(response.data.profile || response.data)
       }
@@ -248,8 +248,9 @@ export default function ViewJobPage() {
   const checkJobStatus = async () => {
     try {
       const response = await savedJobsAPI.checkJobStatus(params.id as string)
-      setIsSaved(response.data.isSaved)
-      setIsInterested(response.data.isInterested)
+      const status = response.data || {}
+      setIsSaved(Boolean(status.isSaved ?? status.is_saved))
+      setIsInterested(Boolean(status.isInterested ?? status.is_interested))
     } catch (err) {
       console.error("Error checking job status:", err)
     }

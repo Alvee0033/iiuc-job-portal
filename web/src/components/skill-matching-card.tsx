@@ -1,6 +1,7 @@
 "use client"
 
 import { useState, useEffect } from "react"
+import { aiAnalysisAPI } from "@/lib/api"
 import { Check, X, Lock, TrendingUp, BookOpen, Clock, Star, Zap } from "lucide-react"
 import { Card } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
@@ -39,6 +40,7 @@ export function SkillMatchingCard({ jobId, onAnalysisComplete }: SkillMatchingCa
   const [recommendations, setRecommendations] = useState<SkillRecommendation[]>([])
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [isUnavailable, setIsUnavailable] = useState(false)
   const [isFromCache, setIsFromCache] = useState(false)
   const [cacheSource, setCacheSource] = useState<string>("")
   
@@ -52,20 +54,19 @@ export function SkillMatchingCard({ jobId, onAnalysisComplete }: SkillMatchingCa
 
   const analyzeSkills = async () => {
     try {
-      // 1. Check local cache first (instant load)
       const cachedData = getCachedAnalysis(jobId)
       if (cachedData) {
-        console.log(`✅ Using cached analysis for job ${jobId} (instant load)`)
         setAnalysis(cachedData.analysis)
         setIsFromCache(true)
         setCacheSource('client-memory')
         setLoading(false)
-        
+        setError(null)
+        setIsUnavailable(false)
+
         if (onAnalysisComplete) {
           onAnalysisComplete(cachedData.analysis)
         }
 
-        // Get recommendations if missing skills exist
         if (cachedData.analysis.missing_skills?.length > 0) {
           await getRecommendations()
         }
@@ -73,50 +74,45 @@ export function SkillMatchingCard({ jobId, onAnalysisComplete }: SkillMatchingCa
         return
       }
 
-      // 2. If not in local cache, show loading and fetch from API
       setLoading(true)
       setError(null)
+      setIsUnavailable(false)
       setIsFromCache(false)
       setCacheSource("")
 
-      console.log(`🔄 Fetching analysis for job ${jobId}`)
-      const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3002/api/v1'
-      const response = await fetch(`${API_URL}/ai/jobs/${jobId}/analyze-match`, {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${localStorage.getItem('access_token')}`,
-          'Content-Type': 'application/json'
-        }
-      })
+      const response = await aiAnalysisAPI.analyzeCandidateJobMatch(jobId)
+      const payload = response?.data || response
+      const resolvedAnalysis = payload?.analysis || payload
 
-      if (!response.ok) {
-        throw new Error('Failed to analyze skills')
+      if (!resolvedAnalysis || typeof resolvedAnalysis !== 'object') {
+        throw new Error('AI match data is not available right now.')
       }
 
-      const data = await response.json()
-      
-      // 3. Store in local cache for instant reload on next visit
-      setCachedAnalysis(jobId, data.analysis, {
-        cached: data.cached,
-        cacheSource: data.cacheSource
+      setCachedAnalysis(jobId, resolvedAnalysis, {
+        cached: Boolean(payload?.cached),
+        cacheSource: payload?.cacheSource
       })
 
-      setAnalysis(data.analysis)
-      setIsFromCache(data.cached)
-      setCacheSource(data.cached ? data.cacheSource : 'fresh_analysis')
-      
+      setAnalysis(resolvedAnalysis)
+      setIsFromCache(Boolean(payload?.cached))
+      setCacheSource(payload?.cached ? payload?.cacheSource : 'fresh_analysis')
+
       if (onAnalysisComplete) {
-        onAnalysisComplete(data.analysis)
+        onAnalysisComplete(resolvedAnalysis)
       }
 
-      // Get recommendations for missing skills
-      if (data.analysis.missing_skills?.length > 0) {
+      if (resolvedAnalysis.missing_skills?.length > 0) {
         await getRecommendations()
       }
-
     } catch (err: any) {
       console.error('Analysis error:', err)
-      setError(err.message)
+      const status = err?.response?.status || err?.status
+      if (status === 404 || status === 422 || status === 500) {
+        setIsUnavailable(true)
+        setError(null)
+      } else {
+        setError(err?.response?.data?.message || err?.message || 'Failed to analyze skills')
+      }
     } finally {
       setLoading(false)
     }
@@ -124,17 +120,9 @@ export function SkillMatchingCard({ jobId, onAnalysisComplete }: SkillMatchingCa
 
   const getRecommendations = async () => {
     try {
-      const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3002/api/v1';
-      const response = await fetch(`${API_URL}/ai/jobs/${jobId}/recommendations`, {
-        headers: {
-          'Authorization': `Bearer ${localStorage.getItem('access_token')}`
-        }
-      })
-
-      if (response.ok) {
-        const data = await response.json()
-        setRecommendations(data.recommendations || [])
-      }
+      const response = await aiAnalysisAPI.getSkillRecommendations(jobId)
+      const payload = response?.data || response
+      setRecommendations(payload?.recommendations || [])
     } catch (err) {
       console.error('Failed to get recommendations:', err)
     }
@@ -173,6 +161,18 @@ export function SkillMatchingCard({ jobId, onAnalysisComplete }: SkillMatchingCa
         <div className="flex items-center justify-center space-x-2">
           <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-[#633ff3]"></div>
           <span className="text-sm text-gray-600">Analyzing your skills...</span>
+        </div>
+      </Card>
+    )
+  }
+
+  if (isUnavailable) {
+    return (
+      <Card className="p-6">
+        <div className="text-center">
+          <Zap className="h-8 w-8 text-amber-500 mx-auto mb-2" />
+          <p className="text-sm text-gray-700 mb-2">AI match analysis is temporarily unavailable for this job.</p>
+          <p className="text-xs text-gray-500">You can still review the job details and apply normally.</p>
         </div>
       </Card>
     )

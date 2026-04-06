@@ -10,6 +10,14 @@ const nextConfig: NextConfig = {
   compiler: {
     removeConsole: isProduction,
   },
+  images: {
+    remotePatterns: [
+      {
+        protocol: 'https',
+        hostname: 'i.pravatar.cc',
+      },
+    ],
+  },
   // Disable Image Optimization for static export when using 'output: export'
   // images: {
   //   unoptimized: true,

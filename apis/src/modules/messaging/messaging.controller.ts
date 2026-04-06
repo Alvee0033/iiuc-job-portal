@@ -22,13 +22,14 @@ export class MessagingController {
 
     /**
      * Endpoint to start or retrieve a conversation between a recruiter and candidate.
+     * @param req The request object
      * @param dto Object containing the other user ID and role
-     * @returns The conversation object (currently a placeholder)
+     * @returns The conversation object
      */
     @Post('conversations')
     @ApiOperation({ summary: 'Start or get a conversation between recruiter and candidate' })
-    startConversation(@Body() dto: { otherUserId: string; isRecruiter: boolean; jobId?: string }): any {
-        return null; // Placeholder; real logic needs roles
+    startConversation(@Request() req: any, @Body() dto: { otherUserId: string; isRecruiter: boolean; jobId?: string }): Promise<any> {
+        return this.service.startConversation(req.user.id, dto.otherUserId, dto.isRecruiter, dto.jobId);
     }
 
     /**
@@ -50,13 +51,14 @@ export class MessagingController {
 
     /**
      * Endpoint to retrieve messages for a specific conversation.
+     * @param req The request object
      * @param cid The conversation ID
      * @returns List of messages
      */
     @Get('conversations/:conversationId/messages')
     @ApiOperation({ summary: 'Get messages for a conversation' })
-    getMessages(@Param('conversationId') cid: string): Promise<any[]> {
-        return this.service.getMessages(cid);
+    getMessages(@Request() req: any, @Param('conversationId') cid: string): Promise<any[]> {
+        return this.service.getMessages(cid, req.user.id);
     }
 
     /**

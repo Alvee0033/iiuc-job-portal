@@ -224,9 +224,11 @@ export default function CandidateDashboardClient({ initialData }: { initialData?
                     <div className="h-6 w-1 bg-teal-500 rounded-full" />
                     Recent Applications
                   </h2>
-                  <Button variant="ghost" className="text-teal-600 hover:text-teal-700 hover:bg-teal-50 rounded-full px-4 group">
-                    View all <ChevronRight className="h-4 w-4 ml-1 transition-transform group-hover:translate-x-1" />
-                  </Button>
+                  <Link href="/candidate/applications">
+                    <Button variant="ghost" className="text-teal-600 hover:text-teal-700 hover:bg-teal-50 rounded-full px-4 group">
+                      View all <ChevronRight className="h-4 w-4 ml-1 transition-transform group-hover:translate-x-1" />
+                    </Button>
+                  </Link>
                 </div>
 
                 <div className="bg-white/80 backdrop-blur-xl border border-white/40 rounded-3xl shadow-[0_8px_30px_rgb(0,0,0,0.04)] overflow-hidden ring-1 ring-black/5">

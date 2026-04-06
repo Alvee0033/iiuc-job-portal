@@ -34,7 +34,7 @@ export class ProfilesController {
     @Get('candidate/me')
     @Roles('candidate') @UseGuards(RolesGuard)
     @ApiOperation({ summary: 'Get current candidate profile' })
-    myProfile(@Request() req) { return this.service.getCandidateProfile(req.user.id); }
+    myProfile(@Request() req) { return this.service.getCandidateProfile(req.user.id, req.user); }
 
     @Put('candidate/me')
     @Roles('candidate') @UseGuards(RolesGuard)
@@ -45,7 +45,9 @@ export class ProfilesController {
 
     @Get('candidate/:userId')
     @CacheTTL(300) // Cache public profiles for 5 minutes
-    getCandidateById(@Param('userId') userId: string) { return this.service.getCandidateProfile(userId); }
+    getCandidateById(@Request() req, @Param('userId') userId: string) {
+        return this.service.getCandidateProfile(userId, req.user);
+    }
 
     @Post('candidate')
     @Roles('candidate') @UseGuards(RolesGuard)
@@ -99,14 +101,14 @@ export class ProfilesController {
     @Put('candidate/skills/:skillId')
     @Roles('candidate') @UseGuards(RolesGuard)
     @ApiOperation({ summary: 'Update a skill' })
-    updateSkill(@Param('skillId') id: string, @Body() dto: any) {
-        return this.service.updateSkill(id, dto);
+    updateSkill(@Request() req, @Param('skillId') id: string, @Body() dto: any) {
+        return this.service.updateSkill(req.user.id, id, dto);
     }
 
     @Delete('candidate/skills/:skillId')
     @Roles('candidate') @UseGuards(RolesGuard)
     @ApiOperation({ summary: 'Remove a skill' })
-    removeSkill(@Param('skillId') id: string) { return this.service.deleteSkill(id); }
+    removeSkill(@Request() req, @Param('skillId') id: string) { return this.service.deleteSkill(req.user.id, id); }
 
     @Get('candidate/skills/unverified')
     @Roles('candidate') @UseGuards(RolesGuard)
@@ -118,8 +120,8 @@ export class ProfilesController {
     @Post('candidate/skills/unverified/:skillId/exam')
     @Roles('candidate') @UseGuards(RolesGuard)
     @ApiOperation({ summary: 'Generate skill verification exam' })
-    generateSkillExam(@Param('skillId') skillId: string) {
-        return this.service.generateSkillExam(skillId);
+    generateSkillExam(@Request() req, @Param('skillId') skillId: string) {
+        return this.service.generateSkillExam(req.user.id, skillId);
     }
 
     @Post('candidate/skills/unverified/submit-exam')
@@ -137,12 +139,12 @@ export class ProfilesController {
     @Put('candidate/experience/:id')
     @Roles('candidate') @UseGuards(RolesGuard)
     @ApiOperation({ summary: 'Update experience' })
-    updateExperience(@Param('id') id: string, @Body() dto: any) { return this.service.updateExperience(id, dto); }
+    updateExperience(@Request() req, @Param('id') id: string, @Body() dto: any) { return this.service.updateExperience(req.user.id, id, dto); }
 
     @Delete('candidate/experience/:id')
     @Roles('candidate') @UseGuards(RolesGuard)
     @ApiOperation({ summary: 'Delete experience' })
-    deleteExperience(@Param('id') id: string) { return this.service.deleteExperience(id); }
+    deleteExperience(@Request() req, @Param('id') id: string) { return this.service.deleteExperience(req.user.id, id); }
 
     @Post('candidate/education')
     @Roles('candidate') @UseGuards(RolesGuard)
@@ -152,12 +154,12 @@ export class ProfilesController {
     @Put('candidate/education/:id')
     @Roles('candidate') @UseGuards(RolesGuard)
     @ApiOperation({ summary: 'Update education' })
-    updateEducation(@Param('id') id: string, @Body() dto: any) { return this.service.updateEducation(id, dto); }
+    updateEducation(@Request() req, @Param('id') id: string, @Body() dto: any) { return this.service.updateEducation(req.user.id, id, dto); }
 
     @Delete('candidate/education/:id')
     @Roles('candidate') @UseGuards(RolesGuard)
     @ApiOperation({ summary: 'Delete education' })
-    deleteEducation(@Param('id') id: string) { return this.service.deleteEducation(id); }
+    deleteEducation(@Request() req, @Param('id') id: string) { return this.service.deleteEducation(req.user.id, id); }
 
     @Post('candidate/projects')
     @Roles('candidate') @UseGuards(RolesGuard)
@@ -167,12 +169,12 @@ export class ProfilesController {
     @Put('candidate/projects/:id')
     @Roles('candidate') @UseGuards(RolesGuard)
     @ApiOperation({ summary: 'Update project' })
-    updateProject(@Param('id') id: string, @Body() dto: any) { return this.service.updateProject(id, dto); }
+    updateProject(@Request() req, @Param('id') id: string, @Body() dto: any) { return this.service.updateProject(req.user.id, id, dto); }
 
     @Delete('candidate/projects/:id')
     @Roles('candidate') @UseGuards(RolesGuard)
     @ApiOperation({ summary: 'Delete project' })
-    deleteProject(@Param('id') id: string) { return this.service.deleteProject(id); }
+    deleteProject(@Request() req, @Param('id') id: string) { return this.service.deleteProject(req.user.id, id); }
 
     @Post('candidate/certifications')
     @Roles('candidate') @UseGuards(RolesGuard)
@@ -182,18 +184,18 @@ export class ProfilesController {
     @Put('candidate/certifications/:id')
     @Roles('candidate') @UseGuards(RolesGuard)
     @ApiOperation({ summary: 'Update certification' })
-    updateCertification(@Param('id') id: string, @Body() dto: any) { return this.service.updateCertification(id, dto); }
+    updateCertification(@Request() req, @Param('id') id: string, @Body() dto: any) { return this.service.updateCertification(req.user.id, id, dto); }
 
     @Delete('candidate/certifications/:id')
     @Roles('candidate') @UseGuards(RolesGuard)
     @ApiOperation({ summary: 'Delete certification' })
-    deleteCertification(@Param('id') id: string) { return this.service.deleteCertification(id); }
+    deleteCertification(@Request() req, @Param('id') id: string) { return this.service.deleteCertification(req.user.id, id); }
 
     @Get('candidate/:userId/download-resume')
     @ApiOperation({ summary: 'Download candidate resume' })
-    async downloadResume(@Param('userId') userId: string) {
-        const profile = await this.service.getCandidateProfile(userId);
-        if (!profile || !profile.resumeUrl) throw new NotFoundException('Resume not found');
-        return { url: profile.resumeUrl };
+    async downloadResume(@Request() req, @Param('userId') userId: string) {
+        const download = await this.service.getResumeDownload(userId, req.user);
+        if (!download?.url) throw new NotFoundException('Resume not found');
+        return download;
     }
 }

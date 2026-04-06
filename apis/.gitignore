@@ -1,2 +1,14 @@
 .vercel
-.env*.local
+node_modules
+dist
+
+# Local environment and secrets
+.env
+.env.*
+!.env.example
+
+# Local runtime artifacts
+backend.log
+backend_output.log
+*.log
+pgdata/

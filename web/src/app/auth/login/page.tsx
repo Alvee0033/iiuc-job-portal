@@ -54,6 +54,7 @@ export default function LoginPage() {
         localStorage.setItem('user', JSON.stringify(response.data.user))
         useAuthStore.getState().setAuth(response.data.user, response.data.token)
         router.push(`/${response.data.user.role}/dashboard`)
+        router.refresh()
       } else {
         setError("Login failed. Please try again.")
         setLoading(false)

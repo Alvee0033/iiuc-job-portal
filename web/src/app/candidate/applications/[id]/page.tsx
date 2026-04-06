@@ -43,10 +43,8 @@ export default function ApplicationDetailsPage() {
 
     const loadApplication = async () => {
         try {
-            // In a real app, you would fetch a specific application by ID
-            // For now, we fetch all and find the one matching the ID
-            const response = await applicationsAPI.getCandidateApplications()
-            const app = response.data.applications.find((a: any) => a.id === params.id)
+                        const response = await applicationsAPI.getCandidateApplicationById(params.id as string)
+            const app = response.data?.application || response.data
 
             if (!app) {
                 setError("Application not found")
@@ -146,7 +144,7 @@ export default function ApplicationDetailsPage() {
                 >
                     {/* Breadcrumb / Back Navigation */}
                     <motion.div variants={itemVariants} className="mb-6">
-                        <Link href="/candidate/dashboard" className="flex items-center text-slate-500 hover:text-teal-600 transition-colors w-fit">
+                        <Link href="/candidate/applications" className="flex items-center text-slate-500 hover:text-teal-600 transition-colors w-fit">
                             <ChevronRight className="h-4 w-4 rotate-180 mr-1" />
                             <span className="font-medium">Back to Applications</span>
                         </Link>

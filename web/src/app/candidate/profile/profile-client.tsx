@@ -4,7 +4,7 @@ import { useEffect, useState } from "react"
 import { useRouter } from "next/navigation"
 import Link from "next/link"
 import { Button } from "@/components/ui/button"
-import { cvAPI, uploadAPI } from "@/lib/api"
+import { fetchCurrentCandidateProfile, uploadAPI } from "@/lib/api"
 import { useLanguage } from "@/components/language-provider"
 import { User, Mail, Phone, MapPin, Briefcase, GraduationCap, Code, Globe, Edit2, Plus, Loader2, Sparkles, ChevronRight, Camera } from "lucide-react"
 import { motion } from "framer-motion"
@@ -71,7 +71,7 @@ export default function ProfileClient({ initialProfile }: { initialProfile?: any
 
     const fetchProfile = async () => {
         try {
-            const response = await cvAPI.getProfile()
+            const response = await fetchCurrentCandidateProfile()
             if (response.data) {
                 const profileData = response.data.profile || response.data
                 setProfile(mapProfile(profileData))

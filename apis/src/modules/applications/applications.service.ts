@@ -1,8 +1,9 @@
-import { Injectable, NotFoundException, ConflictException } from '@nestjs/common';
+import { Injectable, NotFoundException, ConflictException, ForbiddenException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { Application, ApplicationStatus } from './application.entity';
 import { Job } from '../jobs/job.entity';
+import { RecruiterProfile } from '../profiles/profile.entity';
 import { ConfigService } from '@nestjs/config';
 import Groq from 'groq-sdk';
 
@@ -13,9 +14,26 @@ export class ApplicationsService {
     constructor(
         @InjectRepository(Application) private repo: Repository<Application>,
         @InjectRepository(Job) private jobRepo: Repository<Job>,
+        @InjectRepository(RecruiterProfile) private recruiterProfileRepo: Repository<RecruiterProfile>,
         private config: ConfigService,
     ) {
         this.groq = new Groq({ apiKey: config.get('GROQ_API_KEY') });
+    }
+
+    private mapApplicationForCandidate(app: Application, recruiterProfile?: RecruiterProfile | null): any {
+        const job: any = app.job;
+
+        return {
+            ...app,
+            jobs: job ? {
+                ...job,
+                job_title: job.title,
+                recruiter_profiles: {
+                    company_name: job.company || recruiterProfile?.companyName || 'Unknown Company',
+                    company_logo_url: job.companyLogo || recruiterProfile?.companyLogoUrl || null,
+                },
+            } : null,
+        };
     }
 
     /**
@@ -51,32 +69,33 @@ export class ApplicationsService {
             relations: ['job', 'job.recruiter'],
             order: { createdAt: 'DESC' },
         });
-        return apps.map(app => {
-            const j = app.job as any;
-            if (!j) return app;
-            return {
-                ...app,
-                jobs: {
-                    ...j,
-                    job_title: j.title,
-                    recruiter_profiles: {
-                        company_name: j.company || (j.recruiter ? j.recruiter.companyName : null) || 'Unknown Company',
-                        company_logo_url: j.companyLogo || (j.recruiter ? j.recruiter.profileImage : null)
-                    }
-                }
-            };
-        });
+
+        const recruiterIds = Array.from(new Set(
+            apps
+                .map((app) => app.job?.recruiterId)
+                .filter((id): id is string => !!id),
+        ));
+
+        const recruiterProfiles = recruiterIds.length
+            ? await this.recruiterProfileRepo.find({ where: recruiterIds.map((userId) => ({ userId })) })
+            : [];
+
+        const recruiterProfileMap = new Map(recruiterProfiles.map((profile) => [profile.userId, profile]));
+
+        return apps.map((app) => this.mapApplicationForCandidate(app, recruiterProfileMap.get(app.job?.recruiterId) || null));
     }
 
     /**
      * Retrieves all applications for a specific job.
      * @param jobId The job's ID
-     * @param recruiterId The recruiter's ID (currently unused but reserved for permission checks)
+     * @param recruiterId The recruiter's ID
      * @returns A list of applications ordered by AI score
      */
     async findByJob(jobId: string, recruiterId: string): Promise<Application[]> {
         const job = await this.jobRepo.findOne({ where: { id: jobId } });
         if (!job) throw new NotFoundException('Job not found');
+        if (job.recruiterId !== recruiterId) throw new ForbiddenException('You do not manage this job');
+
         return this.repo.find({
             where: { jobId },
             relations: ['candidate'],
@@ -102,15 +121,19 @@ export class ApplicationsService {
     /**
      * Updates the status of an application.
      * @param id The application ID
+     * @param recruiterId The recruiter performing the update
      * @param status The new status
      * @param notes Optional recruiter notes
      * @returns The updated application
      */
-    async updateStatus(id: string, status: ApplicationStatus, notes?: string): Promise<Application> {
-        const app = await this.repo.findOne({ where: { id } });
+    async updateStatus(id: string, recruiterId: string, status: ApplicationStatus, notes?: string): Promise<Application> {
+        const app = await this.repo.findOne({ where: { id }, relations: ['job'] });
         if (!app) throw new NotFoundException('Application not found');
+        if (!app.job) throw new NotFoundException('Job not found for this application');
+        if (app.job.recruiterId !== recruiterId) throw new ForbiddenException('You do not manage this application');
+
         app.status = status;
-        if (notes) app.recruiterNotes = notes;
+        if (notes !== undefined) app.recruiterNotes = notes;
         return this.repo.save(app);
     }
 

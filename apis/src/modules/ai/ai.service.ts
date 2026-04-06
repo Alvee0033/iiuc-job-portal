@@ -1,4 +1,8 @@
-import { Injectable } from '@nestjs/common';
+import {
+    Injectable,
+    NotFoundException,
+    ServiceUnavailableException,
+} from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import Groq from 'groq-sdk';
 import { InjectRepository } from '@nestjs/typeorm';
@@ -9,7 +13,7 @@ import { CandidateProfile, CandidateSkill } from '../profiles/profile.entity';
 
 @Injectable()
 export class AiService {
-    private groq: Groq;
+    private groq: Groq | null;
 
     constructor(
         @InjectRepository(AiInterview) private aiInterviewRepo: Repository<AiInterview>,
@@ -18,21 +22,25 @@ export class AiService {
         @InjectRepository(CandidateSkill) private skillRepo: Repository<CandidateSkill>,
         private config: ConfigService,
     ) {
-        this.groq = new Groq({ apiKey: config.get('GROQ_API_KEY') });
+        const apiKey = config.get<string>('GROQ_API_KEY');
+        this.groq = apiKey ? new Groq({ apiKey }) : null;
     }
 
     async analyzeMatch(userId: string, jobId: string) {
+        const { job, profile, skills } = await this.getMatchContext(userId, jobId);
+        const fallbackResult = this.buildFallbackMatchAnalysis(job, profile, skills);
+
+        if (!this.groq) {
+            return {
+                ...fallbackResult,
+                cached: true,
+                cacheSource: 'local_fallback_no_ai_config',
+            };
+        }
+
         try {
-            const job = await this.jobRepo.findOne({ where: { id: jobId } });
-            if (!job) throw new Error('Job not found');
-
-            const profile = await this.profileRepo.findOne({ where: { userId } });
-            if (!profile) throw new Error('Profile not found');
-
-            const skills = await this.skillRepo.find({ where: { candidateProfileId: profile.id } });
-
             const prompt = `Analyze the skill match between a candidate and a job.
-Candidate Skills: ${skills.map(s => s.skillName).join(', ')}
+Candidate Skills: ${skills.map(s => `${s.skillName} (${s.skillLevel || 'unknown'})`).join(', ')}
 Candidate Bio: ${profile.bio || 'Not provided'}
 Job Requirements: ${(job.requiredSkills || []).join(', ')}
 Job Description: ${job.description}
@@ -53,35 +61,52 @@ Return JSON strictly matching this schema:
                 response_format: { type: 'json_object' },
             });
 
-            let result;
-            try {
-                result = JSON.parse(response.choices[0].message.content);
-                // Ensure it's wrapped in { analysis: ... } as expected by the frontend
-                if (!result.analysis && result.match_percentage !== undefined) {
-                    result = { analysis: result };
-                }
-            } catch (e) {
-                console.error("Failed to parse AI Match Analysis", e);
-                throw new Error("Invalid AI response");
+            const content = response.choices?.[0]?.message?.content;
+            if (!content) {
+                return {
+                    ...fallbackResult,
+                    cached: true,
+                    cacheSource: 'local_fallback_empty_ai_response',
+                };
+            }
+
+            let result = JSON.parse(content);
+            if (!result.analysis && result.match_percentage !== undefined) {
+                result = { analysis: result };
+            }
+
+            if (!result.analysis || typeof result.analysis !== 'object') {
+                return {
+                    ...fallbackResult,
+                    cached: true,
+                    cacheSource: 'local_fallback_invalid_ai_shape',
+                };
             }
 
             return result;
         } catch (error) {
-            console.error('AI Match Analysis Error:', error);
-            throw error;
+            console.error('AI Match Analysis Error, using fallback:', error);
+            return {
+                ...fallbackResult,
+                cached: true,
+                cacheSource: 'local_fallback_ai_error',
+            };
         }
     }
 
     async getSkillRecommendations(userId: string, jobId: string) {
+        const { job, skills } = await this.getMatchContext(userId, jobId);
+        const fallbackRecommendations = this.buildFallbackRecommendations(job, skills);
+
+        if (!this.groq) {
+            return {
+                recommendations: fallbackRecommendations,
+                cached: true,
+                cacheSource: 'local_fallback_no_ai_config',
+            };
+        }
+
         try {
-            const job = await this.jobRepo.findOne({ where: { id: jobId } });
-            if (!job) throw new Error('Job not found');
-
-            const profile = await this.profileRepo.findOne({ where: { userId } });
-            if (!profile) throw new Error('Profile not found');
-
-            const skills = await this.skillRepo.find({ where: { candidateProfileId: profile.id } });
-
             const prompt = `Analyze the missing skills between a candidate and a job. Provide specific learning recommendations.
 Candidate Skills: ${skills.map(s => s.skillName).join(', ')}
 Job Requirements: ${(job.requiredSkills || []).join(', ')}
@@ -103,14 +128,41 @@ Return a JSON with "recommendations" array containing objects with:
                 messages: [{ role: 'user', content: prompt }],
                 response_format: { type: 'json_object' },
             });
-            return JSON.parse(response.choices[0].message.content);
+
+            const content = response.choices?.[0]?.message?.content;
+            if (!content) {
+                return {
+                    recommendations: fallbackRecommendations,
+                    cached: true,
+                    cacheSource: 'local_fallback_empty_ai_response',
+                };
+            }
+
+            const parsed = JSON.parse(content);
+            if (!Array.isArray(parsed?.recommendations)) {
+                return {
+                    recommendations: fallbackRecommendations,
+                    cached: true,
+                    cacheSource: 'local_fallback_invalid_ai_shape',
+                };
+            }
+
+            return parsed;
         } catch (error) {
-            console.error('Skill recommendations error:', error);
-            throw error;
+            console.error('Skill recommendations error, using fallback:', error);
+            return {
+                recommendations: fallbackRecommendations,
+                cached: true,
+                cacheSource: 'local_fallback_ai_error',
+            };
         }
     }
 
     async analyzeResume(resumeText: string, jobDescription: string) {
+        if (!this.groq) {
+            throw new ServiceUnavailableException('AI resume analysis is not configured yet');
+        }
+
         const response = await this.groq.chat.completions.create({
             model: 'llama-3.2-3b-preview',
             messages: [{
@@ -126,6 +178,10 @@ Return JSON with { "compatibility_score": 85, "strengths": [], "skill_gaps": [],
     }
 
     async generateInterviewQuestions(jobTitle: string, jobDescription: string, difficulty: 'easy' | 'medium' | 'hard' = 'medium') {
+        if (!this.groq) {
+            throw new ServiceUnavailableException('AI interview generation is not configured yet');
+        }
+
         const response = await this.groq.chat.completions.create({
             model: 'llama3-70b-8192',
             messages: [{
@@ -174,6 +230,10 @@ Return JSON with { questions: [{ id, question, category, expectedAnswer, tips }]
     }
 
     private async evaluateAnswer(question: string, answer: string, expectedAnswer: string) {
+        if (!this.groq) {
+            throw new ServiceUnavailableException('AI interview evaluation is not configured yet');
+        }
+
         const response = await this.groq.chat.completions.create({
             model: 'llama3-8b-8192',
             messages: [{
@@ -190,6 +250,10 @@ Return JSON: { score (0-10), feedback, strengths, improvements }`,
     }
 
     private async generateOverallFeedback(answers: any[]) {
+        if (!this.groq) {
+            throw new ServiceUnavailableException('AI interview feedback is not configured yet');
+        }
+
         const summary = answers.map((a: any) => `Q: ${a.question} | Score: ${a.score}/10`).join('\n');
         const response = await this.groq.chat.completions.create({
             model: 'llama3-8b-8192',
@@ -229,6 +293,10 @@ Return JSON: { overall_assessment, strengths, areas_for_improvement, hiring_reco
     }
 
     async generateRoadmapWithData(profile: any, skills: any[], interestedJobs: any[]) {
+        if (!this.groq) {
+            throw new ServiceUnavailableException('AI roadmap generation is not configured yet');
+        }
+
         const jobContext = interestedJobs.map(j => `${j.title} at ${j.company}: ${j.description?.substring(0, 300)}`).join('\n---\n');
 
         const prompt = `You are an expert career coach and learning path architect.
@@ -280,6 +348,10 @@ Return a detailed JSON object for a "roadmap" comprising:
     }
 
     async generateSkillExamQuestions(skillName: string) {
+        if (!this.groq) {
+            throw new ServiceUnavailableException('AI skill exam generation is not configured yet');
+        }
+
         const prompt = `Generate a 5-question multiple-choice technical exam for the skill: ${skillName}.
         Difficulty: Intermediate.
         Return strictly valid JSON with: { "questions": [{ "id": "q1", "question": "...", "options": { "A": "...", "B": "...", "C": "...", "D": "..." }, "correctAnswer": "A", "explanation": "..." }] }`;
@@ -336,5 +408,95 @@ Return a detailed JSON object for a "roadmap" comprising:
         const passed = score >= 70;
 
         return { score, passed, correctCount, totalQuestions: questions.length };
+    }
+
+    private async getMatchContext(userId: string, jobId: string) {
+        const job = await this.jobRepo.findOne({ where: { id: jobId } });
+        if (!job) throw new NotFoundException('Job not found');
+
+        const profile = await this.profileRepo.findOne({ where: { userId } });
+        if (!profile) throw new NotFoundException('Profile not found');
+
+        const skills = await this.skillRepo.find({ where: { candidateProfileId: profile.id } });
+        return { job, profile, skills };
+    }
+
+    private buildFallbackMatchAnalysis(job: Job, profile: CandidateProfile, skills: CandidateSkill[]) {
+        const requiredSkills = (job.requiredSkills || []).filter(Boolean);
+        const normalizedCandidateSkills = skills.map((skill) => ({
+            originalName: skill.skillName,
+            normalizedName: this.normalizeSkill(skill.skillName),
+            level: skill.skillLevel || 'intermediate',
+        }));
+
+        const matchingSkills = requiredSkills.flatMap((requiredSkill) => {
+            const normalizedRequired = this.normalizeSkill(requiredSkill);
+            const matched = normalizedCandidateSkills.find((candidateSkill) => candidateSkill.normalizedName === normalizedRequired);
+
+            if (!matched) return [];
+
+            return [{
+                skill: requiredSkill,
+                candidate_level: matched.level,
+                job_requirement: requiredSkill,
+                match_quality: this.toMatchQuality(matched.level),
+            }];
+        });
+
+        const missingSkills = requiredSkills
+            .filter((requiredSkill) => !normalizedCandidateSkills.some((candidateSkill) => candidateSkill.normalizedName === this.normalizeSkill(requiredSkill)))
+            .map((requiredSkill, index) => ({
+                skill: requiredSkill,
+                job_requirement: requiredSkill,
+                importance: index < 3 ? 'high' : 'medium',
+            }));
+
+        const denominator = requiredSkills.length || Math.max(normalizedCandidateSkills.length, 1);
+        const matchPercentage = requiredSkills.length
+            ? Math.round((matchingSkills.length / denominator) * 100)
+            : normalizedCandidateSkills.length > 0 ? 65 : 0;
+
+        const overallAssessment = requiredSkills.length
+            ? `Matched ${matchingSkills.length} of ${requiredSkills.length} required skills using local analysis${profile.bio ? ' with profile context available' : ''}.`
+            : 'This job does not list structured required skills, so the match score is based on limited local profile data.';
+
+        return {
+            analysis: {
+                match_percentage: matchPercentage,
+                matching_skills: matchingSkills,
+                missing_skills: missingSkills,
+                overall_assessment: overallAssessment,
+            },
+        };
+    }
+
+    private buildFallbackRecommendations(job: Job, skills: CandidateSkill[]) {
+        const candidateSkillSet = new Set(skills.map((skill) => this.normalizeSkill(skill.skillName)));
+        const missingSkills = (job.requiredSkills || [])
+            .filter((requiredSkill) => !candidateSkillSet.has(this.normalizeSkill(requiredSkill)))
+            .slice(0, 5);
+
+        return missingSkills.map((skill) => ({
+            skill,
+            learning_path: `Start with beginner-friendly ${skill} fundamentals, then build one practical project that demonstrates ${skill} in a job-like scenario.`,
+            resources: [
+                `${skill} official documentation`,
+                `${skill} beginner tutorial`,
+                `${skill} project-based practice`,
+            ],
+            difficulty: 'beginner',
+            estimated_time: '2-4 weeks',
+        }));
+    }
+
+    private normalizeSkill(skill: string) {
+        return (skill || '').trim().toLowerCase();
+    }
+
+    private toMatchQuality(level: string) {
+        const normalizedLevel = (level || '').toLowerCase();
+        if (normalizedLevel === 'advanced' || normalizedLevel === 'expert') return 'high';
+        if (normalizedLevel === 'beginner') return 'low';
+        return 'medium';
     }
 }

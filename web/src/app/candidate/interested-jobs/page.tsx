@@ -34,7 +34,8 @@ export default function InterestedJobsPage() {
     try {
       setLoading(true)
       const response = await savedJobsAPI.getInterestedJobs()
-      setInterestedJobs(response.data.interestedJobs || [])
+      const jobs = response.data?.interestedJobs || response.data?.interested_jobs || []
+      setInterestedJobs(jobs)
     } catch (error) {
       console.error("Failed to fetch interested jobs:", error)
     } finally {

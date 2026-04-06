@@ -1,6 +1,6 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { Injectable, NotFoundException, ForbiddenException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository, Like, ILike } from 'typeorm';
+import { Repository } from 'typeorm';
 import { User, UserRole } from './user.entity';
 
 @Injectable()
@@ -21,11 +21,16 @@ export class UsersService {
      * @param id The user ID
      * @returns The user object without password
      */
-    async findOne(id: string): Promise<Partial<User>> {
+    async findOne(id: string, viewer: Pick<User, 'id' | 'role'>): Promise<Partial<User>> {
         const user = await this.repo.findOne({ where: { id } });
         if (!user) throw new NotFoundException('User not found');
-        const { password, ...rest } = user;
-        return rest;
+
+        const canViewFullUser = viewer.role === UserRole.ADMIN || viewer.id === id;
+        if (!canViewFullUser) {
+            throw new ForbiddenException('You do not have access to this user');
+        }
+
+        return this.sanitize(user);
     }
 
     /**
@@ -63,5 +68,10 @@ export class UsersService {
         if (!user) throw new NotFoundException('User not found');
         user.isActive = !user.isActive;
         return this.repo.save(user);
+    }
+
+    private sanitize(user: User): Partial<User> {
+        const { password, ...rest } = user;
+        return rest;
     }
 }

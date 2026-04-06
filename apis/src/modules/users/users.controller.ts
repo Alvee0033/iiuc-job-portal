@@ -1,4 +1,4 @@
-import { Controller, Get, Param, Query, UseGuards, Patch } from '@nestjs/common';
+import { Controller, Get, Param, Query, UseGuards, Patch, Request } from '@nestjs/common';
 import { ApiTags, ApiBearerAuth, ApiOperation } from '@nestjs/swagger';
 import { UsersService } from './users.service';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
@@ -42,8 +42,8 @@ export class UsersController {
      */
     @Get(':id')
     @ApiOperation({ summary: 'Get user by ID' })
-    findOne(@Param('id') id: string): Promise<any> {
-        return this.service.findOne(id);
+    findOne(@Request() req: any, @Param('id') id: string): Promise<any> {
+        return this.service.findOne(id, req.user);
     }
 
     /**

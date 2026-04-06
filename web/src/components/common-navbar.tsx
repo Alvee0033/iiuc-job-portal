@@ -1,6 +1,7 @@
 "use client"
 
 import { useState, useEffect } from "react"
+import { useAuthStore } from "@/stores/useAuthStore"
 import { createPortal } from "react-dom"
 import { Briefcase, User, LogOut, Menu, X, Bookmark, Heart, TrendingUp, Home, MessageCircle, BookOpen, Inbox, Sparkles, ChevronDown, Users } from "lucide-react"
 import { Button } from "@/components/ui/button"
@@ -24,22 +25,20 @@ export function CommonNavbar() {
   const pathname = usePathname()
   const router = useRouter()
   const { t } = useLanguage()
-  const [user, setUser] = useState<any>(null)
+  const user = useAuthStore((state) => state.user)
+  const logout = useAuthStore((state) => state.logout)
   const [mounted, setMounted] = useState(false)
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
   const [scrolled, setScrolled] = useState(false)
 
   useEffect(() => {
     setMounted(true)
-    const userStr = localStorage.getItem("user")
-    if (userStr) {
-      setUser(JSON.parse(userStr))
 
-      // Prefetch Profile Data for instant load
-      // We don't use the hook result, just trigger the fetch to populate cache
-      import('@/lib/api').then(({ cvAPI }) => {
-        cvAPI.getProfile().then(res => {
-          if (res.data) {
+    if (user?.role === 'candidate') {
+      import('@/lib/api').then(({ fetchCurrentCandidateProfile }) => {
+        fetchCurrentCandidateProfile().then((res: any) => {
+          const payload = res?.data?.profile || res?.data
+          if (payload) {
             localStorage.setItem('candidate_profile_full', JSON.stringify({
               data: res.data,
               timestamp: Date.now()
@@ -54,7 +53,7 @@ export function CommonNavbar() {
     }
     window.addEventListener('scroll', handleScroll)
     return () => window.removeEventListener('scroll', handleScroll)
-  }, [])
+  }, [user?.id, user?.role])
 
   // Lock body scroll when drawer open
   useEffect(() => {
@@ -70,10 +69,10 @@ export function CommonNavbar() {
   }
 
   const handleLogout = () => {
+    logout()
     localStorage.removeItem("access_token")
     localStorage.removeItem("user")
     localStorage.removeItem("profile_last_fetch")
-    setUser(null)
     router.push("/auth/login")
     setMobileMenuOpen(false)
   }

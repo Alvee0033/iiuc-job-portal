@@ -329,6 +329,30 @@ export const cvAPI = {
   generateRecommendations: () => api.post('/cv/recommendations'),
 };
 
+
+export const getStoredAuthUser = () => {
+  if (typeof window === 'undefined') return null;
+
+  try {
+    const rawUser = localStorage.getItem('user');
+    return rawUser ? JSON.parse(rawUser) : null;
+  } catch {
+    return null;
+  }
+};
+
+export const fetchCurrentCandidateProfile = async () => {
+  try {
+    return await cvAPI.getProfile();
+  } catch (error: any) {
+    const user = getStoredAuthUser();
+    if (user?.id) {
+      return profileAPI.getCandidate(user.id);
+    }
+    throw error;
+  }
+};
+
 // Video Call API
 export const videoCallAPI = {
   // Generate token

@@ -52,10 +52,12 @@ export default function AuthPage() {
 
         // Store token and user data
         if (response.data.token) {
+          document.cookie = `access_token=${response.data.token}; path=/; max-age=86400; SameSite=Lax`;
           localStorage.setItem('access_token', response.data.token)
           localStorage.setItem('user', JSON.stringify(response.data.user))
           useAuthStore.getState().setAuth(response.data.user, response.data.token)
           router.push(`/${role}/dashboard`)
+          router.refresh()
         } else {
           setError("Signup successful! Redirecting...")
           setLoading(false)
@@ -75,10 +77,12 @@ export default function AuthPage() {
 
         // Store token and user data
         if (response.data.token) {
+          document.cookie = `access_token=${response.data.token}; path=/; max-age=86400; SameSite=Lax`;
           localStorage.setItem('access_token', response.data.token)
           localStorage.setItem('user', JSON.stringify(response.data.user))
           useAuthStore.getState().setAuth(response.data.user, response.data.token)
           router.push(`/${response.data.user.role}/dashboard`)
+          router.refresh()
         } else {
           setError("Login failed. Please try again.")
           setLoading(false)
@@ -151,7 +155,7 @@ export default function AuthPage() {
                   {mode === "signin" ? "Welcome Back" : "Create Account"}
                 </h2>
                 <p className="text-gray-600 text-sm mt-1">
-                  {mode === "signin" ? "Log in to your dashboard" : "Join Vantage to get started"}
+                  {mode === "signin" ? "Log in to your dashboard" : "Create your SkillSync account to get started"}
                 </p>
               </motion.div>
             </AnimatePresence>

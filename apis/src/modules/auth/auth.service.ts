@@ -41,6 +41,7 @@ export class AuthService {
     async login(dto: LoginDto): Promise<{ user: Partial<User>; token: string }> {
         const user = await this.usersRepo.findOne({ where: { email: dto.email } });
         if (!user) throw new UnauthorizedException('Invalid credentials');
+        if (!user.isActive) throw new UnauthorizedException('Account is disabled');
 
         const isMatch = await bcrypt.compare(dto.password, user.password);
         if (!isMatch) throw new UnauthorizedException('Invalid credentials');

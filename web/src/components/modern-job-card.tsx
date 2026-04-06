@@ -23,7 +23,7 @@ interface Job {
     department?: string
     salary_min?: number
     salary_max?: number
-    salary_currency: string
+    salary_currency?: string | null
     job_description: string
     posted_at?: string
 }
@@ -37,19 +37,36 @@ interface ModernJobCardProps {
 export function ModernJobCard({ job, onRemove, type }: ModernJobCardProps) {
     const router = useRouter()
 
-    const formatSalary = (min?: number, max?: number, currency: string = "USD") => {
-        if (!min && !max) return "Salary not specified"
-        const formatter = new Intl.NumberFormat('en-US', {
-            style: 'currency',
-            currency: currency,
-            maximumFractionDigits: 0
+    const getSafeCurrencyCode = (currency?: string | null) => {
+        const normalizedCurrency = currency?.trim().toUpperCase()
+
+        if (!normalizedCurrency) return "USD"
+
+        try {
+            new Intl.NumberFormat("en-US", {
+                style: "currency",
+                currency: normalizedCurrency,
+            })
+            return normalizedCurrency
+        } catch {
+            return "USD"
+        }
+    }
+
+    const formatSalary = (min?: number, max?: number, currency?: string | null) => {
+        if (min == null && max == null) return "Salary not specified"
+
+        const formatter = new Intl.NumberFormat("en-US", {
+            style: "currency",
+            currency: getSafeCurrencyCode(currency),
+            maximumFractionDigits: 0,
         })
 
-        if (min && max) {
+        if (min != null && max != null) {
             return `${formatter.format(min)} - ${formatter.format(max)}`
         }
-        if (min) return `${formatter.format(min)}+`
-        if (max) return `Up to ${formatter.format(max)}`
+        if (min != null) return `${formatter.format(min)}+`
+        if (max != null) return `Up to ${formatter.format(max)}`
         return "Salary not specified"
     }
 

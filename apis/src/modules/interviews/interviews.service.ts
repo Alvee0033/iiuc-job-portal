@@ -1,7 +1,8 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { Injectable, NotFoundException, ForbiddenException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { Interview } from './interview.entity';
+import { User, UserRole } from '../users/user.entity';
 
 @Injectable()
 export class InterviewsService {
@@ -35,9 +36,10 @@ export class InterviewsService {
    * @param id The interview ID
    * @returns The interview object
    */
-  async findOne(id: string): Promise<Interview> {
+  async findOne(id: string, viewer: Pick<User, 'id' | 'role'>): Promise<Interview> {
     const interview = await this.repo.findOne({ where: { id }, relations: ['recruiter', 'candidate', 'application'] });
     if (!interview) throw new NotFoundException('Interview not found');
+    this.assertAccess(interview, viewer);
     return interview;
   }
 
@@ -47,10 +49,24 @@ export class InterviewsService {
    * @param dto Update details
    * @returns The updated interview
    */
-  async update(id: string, dto: any): Promise<Interview> {
-    const interview = await this.repo.findOne({ where: { id } });
+  async update(id: string, dto: any, viewer: Pick<User, 'id' | 'role'>): Promise<Interview> {
+    const interview = await this.repo.findOne({ where: { id }, relations: ['recruiter', 'candidate', 'application'] });
     if (!interview) throw new NotFoundException('Interview not found');
-    await this.repo.update(id, dto);
-    return this.findOne(id);
+    this.assertAccess(interview, viewer);
+
+    Object.assign(interview, dto);
+    await this.repo.save(interview);
+    return this.findOne(id, viewer);
+  }
+
+  private assertAccess(interview: Interview, viewer: Pick<User, 'id' | 'role'>) {
+    const canAccess =
+      viewer.role === UserRole.ADMIN ||
+      interview.recruiterId === viewer.id ||
+      interview.candidateId === viewer.id;
+
+    if (!canAccess) {
+      throw new ForbiddenException('You do not have access to this interview');
+    }
   }
 }

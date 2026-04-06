@@ -78,6 +78,7 @@ export class ApplicationsController {
 
     /**
      * Endpoint to update the status of an application.
+     * @param req The request object containing user details
      * @param id The application ID
      * @param dto The status update details
      * @returns The updated application
@@ -85,7 +86,7 @@ export class ApplicationsController {
     @Patch(':id/status')
     @UseGuards(RolesGuard) @Roles('recruiter')
     @ApiOperation({ summary: 'Update application status (recruiter only)' })
-    updateStatus(@Param('id') id: string, @Body() dto: UpdateStatusDto): Promise<any> {
-        return this.service.updateStatus(id, dto.status, dto.notes);
+    updateStatus(@Request() req: any, @Param('id') id: string, @Body() dto: UpdateStatusDto): Promise<any> {
+        return this.service.updateStatus(id, req.user.id, dto.status, dto.notes);
     }
 }

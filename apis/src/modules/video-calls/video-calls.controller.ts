@@ -1,4 +1,4 @@
-import { Controller, Post, Body, UseGuards, Get, Request } from '@nestjs/common';
+import { Controller, Post, Body, UseGuards, Get, Request, ServiceUnavailableException } from '@nestjs/common';
 import { ApiTags, ApiBearerAuth, ApiOperation } from '@nestjs/swagger';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
 
@@ -15,13 +15,21 @@ export class VideoCallsController {
      */
     @Post('token')
     @ApiOperation({ summary: 'Generate Agora RTC token for video call' })
-    generateToken(@Request() req: any, @Body() dto: { channelName: string }): { channelName: string; uid: string; token: string; appId?: string; note: string } {
+    generateToken(@Request() req: any, @Body() dto: { channelName: string }): { channelName: string; uid: string; token: string | null; appId?: string; configured: boolean; note: string } {
+        const appId = process.env.AGORA_APP_ID;
+        const appCertificate = process.env.AGORA_APP_CERTIFICATE;
+
+        if (!appId || !appCertificate) {
+            throw new ServiceUnavailableException('Video calling is not configured yet');
+        }
+
         return {
             channelName: dto.channelName,
             uid: req.user.id,
-            token: 'agora-token-placeholder',
-            appId: process.env.AGORA_APP_ID,
-            note: 'Integrate agora-access-token package for production tokens',
+            token: null,
+            appId,
+            configured: true,
+            note: 'Agora credentials are configured, but real RTC token generation is not implemented yet. Integrate agora-access-token before production use.',
         };
     }
 
@@ -31,7 +39,11 @@ export class VideoCallsController {
      */
     @Get('health')
     @ApiOperation({ summary: 'Video calls service health check' })
-    health(): { status: string; agoraConfigured: boolean } {
-        return { status: 'Video calls module OK', agoraConfigured: !!process.env.AGORA_APP_ID };
+    health(): { status: string; agoraConfigured: boolean; tokenGenerationImplemented: boolean } {
+        return {
+            status: 'Video calls module OK',
+            agoraConfigured: !!process.env.AGORA_APP_ID && !!process.env.AGORA_APP_CERTIFICATE,
+            tokenGenerationImplemented: false,
+        };
     }
 }
